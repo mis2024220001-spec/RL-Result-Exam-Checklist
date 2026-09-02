@@ -514,13 +514,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <p class="hint">This connects the dashboard to a shared cloud copy so you and your teammate see and edit the same records live. It uses a free Google Firebase project - you only set this up once per device.</p>
+      <p class="hint">Connects to the shared copy on the server you host, so you and your teammate see and edit the same records. Anyone with the URL and access to your host can edit them, so keep your host protected - you set this up once per device.</p>
 
-      <label for="syncChecklistId">Checklist ID</label>
-      <input type="text" id="syncChecklistId" value="rl-checklist" placeholder="rl-checklist" autocomplete="off" />
-
-      <label for="syncConfigJson">Firebase web app config (JSON)</label>
-      <textarea id="syncConfigJson" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }'></textarea>
+      <label for="syncServerUrl">Server URL</label>
+      <input type="text" id="syncServerUrl" placeholder="https://your-app.onrender.com" autocomplete="off" />
 
       <label class="check-row"><input type="checkbox" id="syncEnable" /> Turn on live sync</label>
 
@@ -533,22 +530,12 @@
       <details>
         <summary>Setup instructions (one time)</summary>
         <div class="steps">
-1. Open https://console.firebase.google.com and sign in with any Google account.
-2. Create a project (the free "Spark" plan is enough).
-3. Open the project: Build ▸ Firestore Database, then create the database.
-4. Click the Web icon (&lt;/&gt;) to register an app, then copy the block that starts with "firebaseConfig = { ... }" and paste just the { ... } part into the box above.
-5. In Firestore ▸ Rules, set the rules below so both of you can read and write:
-<span class="rules-code">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /checklists/{docId} {
-      allow read, write: if true;
-    }
-  }
-}</span>
-6. Give your teammate the same Checklist ID + same config to paste, and both click "Save &amp; Connect".
+1. Host these two files on any Node host: <b>RL_Result_Checklist.html</b> and <b>server.js</b> (they must be in the same folder).
+2. The host runs <b>node server.js</b>. Free options that work: Render, Railway, Fly.io, or a cheap VPS. (For local testing: run <b>node server.js</b> on your PC and open <b>http://localhost:3000</b>.)
+3. The host gives you a public URL - paste it here and click "Save &amp; Connect".
+4. Send your teammate the same URL. Both of you open it, paste the URL, and click "Save &amp; Connect".
 
-Keep the Checklist ID private - anyone who has it and the config can edit this checklist. Tip: data also stays saved locally in each browser, so nobody loses work if sync is off.</div>
+Data is stored in a <b>data.json</b> file next to server.js. Tip: data also stays saved locally in each browser, so nobody loses work if sync is off.</div>
       </details>
     </div>
   </div>
@@ -589,8 +576,7 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
   var syncModal    = $('#syncModal');
   var syncCloseBtn = $('#syncCloseBtn');
   var syncEnableChk= $('#syncEnable');
-  var syncChecklistInput = $('#syncChecklistId');
-  var syncConfigText = $('#syncConfigJson');
+  var syncServerInput = $('#syncServerUrl');
   var syncConnectBtn = $('#syncConnectBtn');
   var syncDisconnectBtn = $('#syncDisconnectBtn');
   var syncStatusEl = $('#syncStatus');
@@ -1166,20 +1152,17 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
   try { savedTheme = localStorage.getItem(THEME_KEY); } catch(e){}
   applyTheme(savedTheme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 
-  /* ---------- Live sync (Firestore) ---------- */
+  /* ---------- Live sync (JSON server) ---------- */
 
   var SYNC_CONFIG_KEY = 'rl_sync_config';
-  var SYNC_COLLECTION = 'checklists';
   var sync = {
     config: null,
-    app: null,
-    db: null,
-    docRef: null,
-    unsub: null,
     connected: false,
     status: 'off',
     lastPushed: null,
-    pushTimer: null
+    lastError: null,
+    pushTimer: null,
+    pollTimer: null
   };
 
   function loadSyncConfig(){
@@ -1197,39 +1180,42 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
     try { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(c)); } catch(e){}
   }
 
+  function normalizeUrl(raw){
+    var s = String(raw == null ? '' : raw).trim();
+    s = s.replace(/\/+$/, '');
+    if (s && !/^https?:\/\//i.test(s)) s = 'http://' + s;
+    return s;
+  }
+
   function recordsJson(){
     return JSON.stringify(records.map(function(r){
       return { id:r.id, examination:r.examination, year:r.year, type:r.type, status:r.status, sentDate:r.sentDate, notes:r.notes, checked:r.checked };
     }));
   }
 
-  function loadScript(url){
-    return new Promise(function(ok){
-      var s = document.createElement('script');
-      s.src = url;
-      s.async = true;
-      s.onload = ok;
-      s.onerror = ok;
-      document.head.appendChild(s);
-    });
-  }
-
-  function ensureFirebaseSdk(){
-    if (window.firebase && window.firebase.firestore) return Promise.resolve();
-    var APP = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
-    var FS  = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js';
-    return loadScript(APP).then(function(){ return loadScript(FS); });
+  function apiUrl(path){
+    var base = sync.config ? normalizeUrl(sync.config.serverUrl) : '';
+    return base ? base + path : '';
   }
 
   function writeCloudRecords(){
-    if (!sync.docRef) return;
+    if (!sync.connected || !sync.config) return;
+    var url = apiUrl('/api/records');
+    if (!url) return;
     var payload = JSON.parse(recordsJson());
     sync.lastPushed = recordsJson();
-    window.firebase.firestore.setDoc(
-      sync.docRef,
-      { records: payload, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    ).catch(function(){ sync.status = 'error'; sync.connected = false; updateSyncUI(); });
+    fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: payload })
+    }).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+    }).catch(function(err){
+      sync.status = 'error';
+      sync.connected = false;
+      sync.lastError = err && (err.message || 'server unreachable');
+      updateSyncUI();
+    });
   }
 
   function scheduleCloudPush(){
@@ -1238,9 +1224,8 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
     sync.pushTimer = setTimeout(writeCloudRecords, 450);
   }
 
-  function onCloudSnapshot(snap){
-    var data = snap.data();
-    var incoming = data && data.records;
+  function onCloudData(raw){
+    var incoming = raw && raw.records;
     if (!Array.isArray(incoming)){
       writeCloudRecords();
       return;
@@ -1255,57 +1240,58 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
     render();
   }
 
-  function onCloudError(){
-    sync.status = 'error';
-    sync.connected = false;
-    updateSyncUI();
+  function pollCloudSync(){
+    if (!sync.connected) return;
+    var url = apiUrl('/api/records');
+    if (!url) return;
+    fetch(url).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(onCloudData).catch(function(){});
   }
 
   function doConnect(){
     sync.status = 'connecting';
     updateSyncUI();
-    ensureFirebaseSdk().then(function(){
-      if (!window.firebase || !window.firebase.firestore){
-        throw new Error('Firebase SDK unavailable');
-      }
-      if (!window.firebase.apps.length){
-        sync.app = window.firebase.initializeApp(sync.config.firebase);
-      } else {
-        sync.app = window.firebase.apps[0];
-      }
-      sync.db = window.firebase.firestore(sync.app);
-      var docId = String(sync.config.checklistId || 'rl-checklist').trim() || 'rl-checklist';
-      sync.docRef = window.firebase.firestore.doc(sync.db, SYNC_COLLECTION, docId);
-      return window.firebase.firestore.getDoc(sync.docRef);
-    }).then(function(snap){
-      var data = snap.exists() ? snap.data() : null;
-      if (data && Array.isArray(data.records) && data.records.length > 0){
-        records = data.records.map(sanitize);
+    var url = apiUrl('/api/records');
+    if (!url){
+      sync.status = 'error';
+      sync.connected = false;
+      sync.lastError = 'Enter a valid server URL.';
+      updateSyncUI();
+      return;
+    }
+    fetch(url).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(raw){
+      var incoming = raw && raw.records;
+      if (Array.isArray(incoming) && incoming.length > 0){
+        records = incoming.map(sanitize);
         selected.clear();
         saveCache();
         render();
-      } else {
-        writeCloudRecords();
       }
-      if (sync.unsub) sync.unsub();
-      sync.unsub = window.firebase.firestore.onSnapshot(sync.docRef, onCloudSnapshot, onCloudError);
       sync.connected = true;
       sync.status = 'connected';
+      if (sync.pollTimer) clearInterval(sync.pollTimer);
+      sync.pollTimer = setInterval(pollCloudSync, 3000);
+      if (!Array.isArray(incoming) || incoming.length === 0) writeCloudRecords();
       updateSyncUI();
-    }).catch(function(){
+    }).catch(function(err){
       sync.status = 'error';
       sync.connected = false;
+      sync.lastError = err && (err.code || err.message) || 'unknown error';
       updateSyncUI();
     });
   }
 
   function doDisconnect(){
-    if (sync.unsub){ try { sync.unsub(); } catch(e){} }
-    sync.unsub = null;
     sync.connected = false;
     sync.status = 'off';
     sync.lastPushed = null;
     clearTimeout(sync.pushTimer);
+    if (sync.pollTimer){ clearInterval(sync.pollTimer); sync.pollTimer = null; }
     saveCache();
     updateSyncUI();
   }
@@ -1313,11 +1299,10 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
   function updateSyncUI(){
     if (!syncStatusEl) return;
     var text = {
-      off: 'Not connected. Click "Save & Connect" to start sharing.',
+      off: 'Not connected. Enter the server URL above and click "Save & Connect".',
       connecting: 'Connecting to the shared checklist...',
-      connected: 'Connected. Changes are shared live with your teammate.',
-      error: 'Could not connect. Check your Firebase config and internet connection.'
-    }[sync.status] || '';
+      connected: 'Connected. Changes are shared live with your teammate.'
+    }[sync.status] || ('Could not connect: ' + (sync.lastError || 'check the server URL and internet connection.'));
     syncStatusEl.textContent = text;
     syncStatusEl.className = 'modal-status' + (sync.status === 'connected' ? ' ok' : (sync.status === 'error' ? ' err' : ''));
     if (syncDot) syncDot.className = 'sync-dot ' + sync.status;
@@ -1329,12 +1314,10 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
 
   syncBtn.addEventListener('click', function(){
     if (sync.config){
-      syncChecklistInput.value = sync.config.checklistId || 'rl-checklist';
-      syncConfigText.value = sync.config.firebase ? JSON.stringify(sync.config.firebase, null, 2) : '';
+      syncServerInput.value = sync.config.serverUrl || '';
       syncEnableChk.checked = !!sync.config.enabled;
     } else {
-      syncChecklistInput.value = 'rl-checklist';
-      syncConfigText.value = '';
+      syncServerInput.value = '';
       syncEnableChk.checked = false;
     }
     syncModal.hidden = false;
@@ -1348,20 +1331,15 @@ Keep the Checklist ID private - anyone who has it and the config can edit this c
   });
 
   syncConnectBtn.addEventListener('click', function(){
-    var firebaseCfg = null;
-    try {
-      firebaseCfg = JSON.parse(syncConfigText.value || '{}');
-    } catch(e){
-      window.alert('Please paste a valid JSON Firebase config in the box.');
-      return;
-    }
-    if (!firebaseCfg || !firebaseCfg.projectId){
-      window.alert('The Firebase config looks incomplete. Paste the web app config from the Firebase console (it includes apiKey, authDomain, projectId, appId).');
+    var serverUrl = '';
+    var raw = String(syncServerInput.value || '').trim();
+    if (raw) serverUrl = normalizeUrl(raw);
+    if (!serverUrl){
+      window.alert('Please enter the URL of your hosted server.');
       return;
     }
     sync.config = {
-      checklistId: String(syncChecklistInput.value || 'rl-checklist').trim(),
-      firebase: firebaseCfg,
+      serverUrl: serverUrl,
       enabled: syncEnableChk.checked
     };
     saveSyncConfig(sync.config);

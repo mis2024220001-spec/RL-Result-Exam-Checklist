@@ -1,0 +1,13 @@
+{
+  "name": "exam-results-checklist",
+  "version": "1.0.0",
+  "description": "Shared exam results checklist with a built-in JSON server (no dependencies).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "license": "MIT"
+}
