@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RL Result Checklist</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#f4f6fa;
+    --surface:#ffffff;
+    --surface-2:#fbfcfe;
+    --border:#dfe5ee;
+    --border-strong:#c9d3e0;
+    --text:#1f2937;
+    --muted:#6b7686;
+    --accent:#2563eb;
+    --accent-strong:#1d4ed8;
+    --accent-soft:rgba(37,99,235,.10);
+    --danger:#dc2626;
+    --danger-soft:rgba(220,38,38,.08);
+    --shadow:0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --shadow-hover:0 8px 20px rgba(15,23,42,.10);
+    --green:#16a34a;
+    --amber:#d97706;
+    --red:#dc2626;
+  }
+  html[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0f1720;
+    --surface:#16202e;
+    --surface-2:#1b2735;
+    --border:#2a3a4d;
+    --border-strong:#3a4d63;
+    --text:#e6edf5;
+    --muted:#93a5b8;
+    --accent:#5b9bff;
+    --accent-strong:#7aabff;
+    --accent-soft:rgba(91,155,255,.14);
+    --danger:#f2616b;
+    --danger-soft:rgba(242,97,107,.12);
+    --shadow:0 1px 3px rgba(0,0,0,.35);
+    --shadow-hover:0 8px 22px rgba(0,0,0,.45);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  /* ---------- Header ---------- */
+  .app-header{
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    padding:16px 24px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .header-left{ display:flex; flex-direction:column; gap:2px; }
+  .header-left h1{
+    margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .logo-dot{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--accent); display:inline-block;
+  }
+  .subtitle{ margin:0; color:var(--muted); font-size:12.5px; }
+
+  .summary-bar{
+    display:flex; align-items:center; flex-wrap:wrap; gap:6px;
+    margin-top:8px;
+  }
+  .summary-bar .sum{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 10px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent);
+    font-size:12px; font-weight:600; white-space:nowrap;
+  }
+  .summary-bar .sum.lbl{ background:var(--surface-2); color:var(--muted); font-weight:500; }
+  .summary-bar .sum.last{ background:transparent; color:var(--muted); font-weight:500; padding-left:0; }
+  .summary-bar .dot{
+    width:9px; height:9px; border-radius:50%;
+    box-shadow:inset 0 0 0 2px var(--accent);
+  }
+  .summary-bar .sum.dot{ background:transparent; padding:0; }
+  .summary-bar .dot-done{ box-shadow:inset 0 0 0 2px var(--green); }
+  .summary-bar .dot-progress{ box-shadow:inset 0 0 0 2px var(--amber); }
+  .summary-bar .dot-notyet{ box-shadow:inset 0 0 0 2px var(--red); }
+  .header-right{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:8px 14px; border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    font-size:13px; font-weight:600; cursor:pointer;
+    transition:background .12s, border-color .12s, box-shadow .12s, transform .05s;
+    white-space:nowrap;
+  }
+  .btn:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+  .btn:active{ transform:translateY(1px); }
+  .btn .icon{ width:15px; height:15px; }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover{ background:var(--accent-strong); border-color:var(--accent-strong); }
+  .btn.danger{ color:var(--danger); border-color:var(--danger); }
+  .btn.danger:hover{ background:var(--danger-soft); }
+  .btn.ghost{ border-color:transparent; background:transparent; color:var(--muted); }
+  .btn.ghost:hover{ background:var(--accent-soft); color:var(--accent); }
+
+  .icon-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface); color:var(--muted); cursor:pointer;
+    transition:color .12s, border-color .12s, background .12s;
+    flex:none;
+  }
+  .icon-btn:hover{ color:var(--text); border-color:var(--border-strong); }
+  .icon-btn .icon{ width:17px; height:17px; }
+
+  /* ---------- Filter bar ---------- */
+  .filter-bar{
+    display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;
+    padding:14px 24px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:30;
+    box-shadow:0 2px 8px rgba(15,23,42,.05);
+  }
+  .filter-bar .search-wrap{ position:relative; flex:1 1 240px; }
+  .filter-bar .search-wrap .icon{
+    position:absolute; left:11px; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; color:var(--muted); pointer-events:none;
+  }
+  .filter-bar input[type="search"]{
+    width:100%;
+    padding:9px 12px 9px 36px;
+    border:1px solid var(--border); border-radius:8px;
+    background:var(--bg); color:var(--text); font-size:13.5px;
+    outline:none; transition:border-color .12s, box-shadow .12s;
+  }
+  .filter-bar input[type="search"]::placeholder{ color:var(--muted); }
+  .filter-bar input[type="search"]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+
+  .field-group{ display:flex; flex-direction:column; gap:4px; }
+  .field-group > label{ font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+
+  .field-group select{
+    padding:8px 30px 8px 10px;
+    border:1px solid var(--border); border-radius:8px;
+    background:var(--bg); color:var(--text); font-size:13.5px;
+    outline:none; cursor:pointer; transition:border-color .12s, box-shadow .12s;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7686' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+  }
+  .field-group select:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+
+  /* ---------- Bulk bar ---------- */
+  .bulk-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:10px 24px;
+    background:var(--accent-soft);
+    border-bottom:1px solid var(--accent);
+  }
+  .bulk-count{ font-weight:600; font-size:13px; color:var(--accent); }
+  .bulk-bar .btn.active{ border-color:var(--accent); color:var(--accent); background:var(--surface); }
+
+  /* ---------- Table ---------- */
+  .page-wrap{ max-width:1800px; margin:0 auto; padding:20px 24px 8px; }
+
+  .table-wrap{
+    overflow-x:auto;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--surface);
+    box-shadow:var(--shadow);
+  }
+
+  .records-table{
+    width:100%;
+    min-width:1030px;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  .records-table thead th{
+    background:var(--surface-2);
+    color:var(--muted);
+    font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.5px;
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border-strong);
+    white-space:nowrap;
+  }
+  .records-table tbody td{
+    padding:6px 8px;
+    border-bottom:1px solid var(--border);
+    vertical-align:middle;
+  }
+  .records-table tbody tr:last-child td{ border-bottom:none; }
+  .records-table tbody tr:hover td{ background:var(--surface-2); }
+  .records-table tbody tr.selected td{ background:var(--accent-soft); }
+  .records-table tbody tr.dragging td{ opacity:.45; }
+  .records-table tbody tr.drop-before td{ border-top:2px solid var(--accent); }
+  .records-table tbody tr.drop-after td{ border-bottom:2px solid var(--accent); }
+
+  .records-table .col-select{ width:86px; text-align:center; }
+  .records-table .col-year{ width:90px; }
+  .records-table .col-exam{ min-width:190px; width:26%; }
+  .records-table .col-type{ width:150px; }
+  .records-table .col-checked{ width:80px; text-align:center; }
+  .records-table .col-status{ width:140px; }
+  .records-table .col-date{ width:170px; }
+  .records-table .col-note{ min-width:180px; width:20%; }
+  .records-table .col-del{ width:60px; text-align:center; }
+  .records-table thead th.col-select,
+  .records-table thead th.col-checked,
+  .records-table thead th.col-del{ text-align:center; }
+
+  .th-drag{
+    display:inline-block; vertical-align:middle;
+    margin-right:4px; color:var(--muted); opacity:.55;
+  }
+  .th-drag svg{ width:14px; height:14px; }
+
+  .records-table .grip{
+    display:inline-block; vertical-align:middle;
+    color:var(--muted); cursor:grab; user-select:none;
+    padding:4px 2px; margin-right:4px; border-radius:4px;
+    opacity:.55; transition:opacity .12s, color .12s;
+  }
+  .records-table .grip:hover{ opacity:1; color:var(--accent); }
+  .records-table .grip .icon{ width:15px; height:15px; }
+  .records-table .grip:active{ cursor:grabbing; }
+
+  .bulk-check{ width:15px; height:15px; accent-color:var(--accent); cursor:pointer; flex:none; vertical-align:middle; }
+
+  .row-check{
+    width:16px; height:16px; accent-color:var(--accent); cursor:pointer;
+    margin:0 auto; display:block;
+  }
+
+  .records-table .cell-text,
+  .records-table .cell-select{
+    width:100%;
+    padding:6px 8px;
+    border:1px solid transparent; border-radius:6px;
+    background:transparent;
+    color:var(--text); font-size:13.5px; font-family:inherit;
+    outline:none;
+    transition:background .12s, border-color .12s, box-shadow .12s;
+  }
+  .records-table .cell-text::placeholder{ color:var(--muted); }
+  .records-table .cell-text:hover,
+  .records-table .cell-select:hover{ background:var(--accent-soft); border-color:var(--border); }
+  .records-table .cell-text:focus,
+  .records-table .cell-select:focus,
+  .records-table .date-wrap input:focus{
+    background:var(--surface);
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px var(--accent-soft);
+  }
+  .records-table .cell-select{ cursor:pointer; }
+  .records-table .cell-text{ cursor:text; }
+
+  .status-select{
+    display:inline-block;
+    padding:6px 10px; padding-right:26px; border-radius:999px; border:1px solid transparent;
+    font-size:12.5px; font-weight:700; font-family:inherit;
+    color:#fff; cursor:pointer; outline:none;
+    -webkit-appearance:none; appearance:none;
+    background-repeat:no-repeat; background-position:right 9px center;
+    transition:transform .06s;
+  }
+  .status-select:active{ transform:scale(.97); }
+  .status-select[data-status="Done"]{
+    background-color:var(--green);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+  .status-select[data-status="In Progress"]{
+    background-color:var(--amber);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+  .status-select[data-status="Not yet"]{
+    background-color:var(--red);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  }
+  .status-select option{ color:var(--text); background:var(--surface); font-weight:400; }
+
+  .date-wrap{ position:relative; width:100%; max-width:152px; }
+  .date-wrap input[type="date"]{
+    width:100%;
+    padding:6px 8px; padding-right:28px;
+    border:1px solid transparent; border-radius:6px;
+    background:transparent;
+    color:var(--text); font-size:13px; font-family:inherit;
+    outline:none; cursor:pointer;
+    transition:background .12s, border-color .12s, box-shadow .12s;
+  }
+  .date-wrap input[type="date"]:hover{ background:var(--accent-soft); border-color:var(--border); }
+  .date-wrap input[type="date"]::-webkit-calendar-picker-indicator{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    width:16px; height:16px; margin:0; padding:0;
+    opacity:.55; cursor:pointer;
+  }
+  .date-wrap input[type="date"]::-webkit-calendar-picker-indicator:hover{ opacity:1; }
+  .date-wrap:not(.has-value)::after{
+    content:attr(data-placeholder);
+    position:absolute; left:9px; top:50%; transform:translateY(-50%);
+    color:var(--muted); font-size:12.5px;
+    pointer-events:none; white-space:nowrap;
+  }
+
+  .del-btn{ margin:0 auto; display:block; }
+  .del-btn:hover{ color:var(--danger); border-color:var(--danger); background:var(--danger-soft); }
+
+  /* ---------- Empty state ---------- */
+  .empty-state{
+    max-width:1800px; margin:0 auto; padding:60px 24px;
+    text-align:center; color:var(--muted);
+  }
+  .empty-state .empty-box{
+    border:1.5px dashed var(--border-strong); border-radius:14px;
+    padding:48px 24px; background:var(--surface);
+  }
+  .empty-state svg{ width:40px; height:40px; color:var(--muted); margin-bottom:10px; }
+  .empty-state p{ margin:4px 0; }
+
+  /* ---------- Sync ---------- */
+  .sync-dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:#94a3b8; margin-left:6px; vertical-align:middle;
+    transition:background .15s;
+  }
+  .sync-dot.connected{ background:var(--green); }
+  .sync-dot.connecting{ background:var(--amber); }
+  .sync-dot.error{ background:var(--red); }
+  .sync-dot.off{ background:#94a3b8; }
+
+  .modal-overlay{
+    position:fixed; inset:0; z-index:100;
+    background:rgba(15,23,42,.45);
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:48px 16px;
+    overflow:auto;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:var(--shadow-hover);
+    width:100%; max-width:580px;
+    padding:20px;
+    color:var(--text);
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .modal-head h2{ margin:0; font-size:17px; }
+  .modal .hint{ color:var(--muted); font-size:12.5px; margin:0 0 4px; }
+  .modal label{ display:block; font-size:12px; font-weight:600; color:var(--muted); margin:12px 0 5px; }
+  .modal input[type="text"], .modal textarea{
+    width:100%; padding:8px 10px;
+    border:1px solid var(--border); border-radius:8px;
+    background:var(--bg); color:var(--text); font-size:13.5px; font-family:inherit;
+    outline:none;
+  }
+  .modal input[type="text"]:focus, .modal textarea:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .modal textarea{ min-height:120px; resize:vertical; font-family:Consolas,Menlo,monospace; font-size:12.5px; }
+  .modal .check-row{ display:flex; align-items:center; gap:8px; margin-top:14px; cursor:pointer; }
+  .modal .check-row input{ width:16px; height:16px; accent-color:var(--accent); }
+  .modal-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+  .modal-status{
+    margin-top:12px; padding:9px 12px; border-radius:8px;
+    background:var(--surface-2); color:var(--muted); font-size:12.5px;
+  }
+  .modal-status.ok{ color:var(--green); background:rgba(22,163,74,.08); }
+  .modal-status.err{ color:var(--red); background:var(--danger-soft); }
+  .modal details{ margin-top:14px; }
+  .modal details summary{ cursor:pointer; font-weight:600; font-size:13px; color:var(--accent); }
+  .modal .steps{ font-size:12.5px; color:var(--muted); line-height:1.65; white-space:pre-wrap; }
+  .modal code{ background:var(--surface-2); border:1px solid var(--border); border-radius:5px; padding:1px 5px; font-size:12px; }
+  .modal .rules-code{
+    display:block; white-space:pre; font-family:Consolas,Menlo,monospace;
+    font-size:11.5px; padding:10px; margin-top:6px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px; overflow-x:auto;
+  }
+
+  /* ---------- Footer ---------- */
+  .app-footer{
+    max-width:1800px; margin:0 auto;
+    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:18px 24px 26px; color:var(--muted); font-size:12px;
+  }
+
+  @media (max-width:640px){
+    .filter-bar{ position:static; }
+    .page-wrap{ padding:16px 14px 4px; }
+    .app-header{ padding:14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-left">
+      <h1><span class="logo-dot"></span>Examination Records</h1>
+      <p class="subtitle">Click any field to edit it directly. All changes are saved automatically in this browser.</p>
+    </div>
+    <div class="header-right">
+      <button id="themeToggle" class="icon-btn" title="Toggle light / dark mode" aria-label="Toggle light or dark mode"></button>
+      <button id="syncBtn" class="btn" title="Share and live-sync with your teammate">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+        Sync<span id="syncDot" class="sync-dot" aria-hidden="true"></span>
+      </button>
+      <button id="exportCsvBtn" class="btn" title="Download all records as a CSV file (opens in Excel)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+        Export CSV
+      </button>
+      <button id="exportJsonBtn" class="btn" title="Download a full backup as JSON">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+        Export JSON
+      </button>
+      <button id="importJsonBtn" class="btn" title="Restore a previously exported JSON backup">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9M7 14l5-5 5 5M4 3h16"/></svg>
+        Import JSON
+      </button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden />
+    </div>
+  </header>
+
+  <section class="filter-bar" aria-label="Filters">
+    <div class="search-wrap">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="search" id="searchInput" placeholder="Search exams or notes..." autocomplete="off" />
+    </div>
+    <div class="field-group">
+      <label for="yearFilter">Year</label>
+      <select id="yearFilter">
+        <option value="All">All</option>
+        <option>2025</option><option>2026</option><option>2027</option>
+        <option>2028</option><option>2029</option><option>2030</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label for="typeFilter">Type</label>
+      <select id="typeFilter">
+        <option value="All">All</option>
+        <option>New Register</option>
+        <option>Recertified</option>
+      </select>
+    </div>
+    <button id="addRowBtn" class="btn primary" title="Add a new blank record">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Add Row
+    </button>
+  </section>
+
+  <section class="bulk-bar" id="bulkBar" hidden>
+    <span class="bulk-count" id="bulkCount"></span>
+    <button id="selectAllBtn" class="btn" title="Select all rows matching the current filters">Select All</button>
+    <button id="bulkDeleteBtn" class="btn danger" title="Delete all checked records">Delete Selected</button>
+    <button id="bulkClearBtn" class="btn ghost">Clear selection</button>
+  </section>
+
+  <main class="page-wrap">
+    <div class="table-wrap" id="tableWrap">
+      <table class="records-table" aria-live="polite">
+        <thead>
+          <tr>
+            <th class="col-select"><span class="th-drag" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>Select</th>
+            <th class="col-year">Year</th>
+            <th class="col-exam">Examination</th>
+            <th class="col-type">Type</th>
+            <th class="col-checked">Checked</th>
+            <th class="col-status">Status</th>
+            <th class="col-date">Sent Date</th>
+            <th class="col-note">Note</th>
+            <th class="col-del">Delete</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="empty-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+        <p><strong>No records shown</strong></p>
+        <p id="emptyMsg"></p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <span id="footerStats"></span>
+    <span>Data is stored locally in this browser. Use Export to back up your records.</span>
+  </footer>
+
+<div class="modal-overlay" id="syncModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Live sync settings">
+      <div class="modal-head">
+        <h2>Share with your teammate</h2>
+        <button id="syncCloseBtn" class="icon-btn" title="Close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="17" height="17"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="hint">This connects the dashboard to a shared cloud copy so you and your teammate see and edit the same records live. It uses a free Google Firebase project - you only set this up once per device.</p>
+
+      <label for="syncChecklistId">Checklist ID</label>
+      <input type="text" id="syncChecklistId" value="rl-checklist" placeholder="rl-checklist" autocomplete="off" />
+
+      <label for="syncConfigJson">Firebase web app config (JSON)</label>
+      <textarea id="syncConfigJson" placeholder='{ "apiKey": "...", "authDomain": "...", "projectId": "..." }'></textarea>
+
+      <label class="check-row"><input type="checkbox" id="syncEnable" /> Turn on live sync</label>
+
+      <div class="modal-actions">
+        <button id="syncConnectBtn" class="btn primary">Save &amp; Connect</button>
+        <button id="syncDisconnectBtn" class="btn">Disconnect</button>
+      </div>
+      <div class="modal-status" id="syncStatus">Not connected.</div>
+
+      <details>
+        <summary>Setup instructions (one time)</summary>
+        <div class="steps">
+1. Open https://console.firebase.google.com and sign in with any Google account.
+2. Create a project (the free "Spark" plan is enough).
+3. Open the project: Build ▸ Firestore Database, then create the database.
+4. Click the Web icon (&lt;/&gt;) to register an app, then copy the block that starts with "firebaseConfig = { ... }" and paste just the { ... } part into the box above.
+5. In Firestore ▸ Rules, set the rules below so both of you can read and write:
+<span class="rules-code">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /checklists/{docId} {
+      allow read, write: if true;
+    }
+  }
+}</span>
+6. Give your teammate the same Checklist ID + same config to paste, and both click "Save &amp; Connect".
+
+Keep the Checklist ID private - anyone who has it and the config can edit this checklist. Tip: data also stays saved locally in each browser, so nobody loses work if sync is off.</div>
+      </details>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  var STORAGE_KEY = 'examRecordsDashboard.v1';
+  var THEME_KEY   = 'examRecordsDashboard.theme';
+  var YEARS   = ['2025','2026','2027','2028','2029','2030'];
+  var TYPES   = ['New Register','Recertified'];
+  var STATUSES = ['Done','In Progress','Not yet'];
+
+  var $ = function(s){ return document.querySelector(s); };
+
+  var tbody        = $('#tableBody');
+  var tableWrap    = $('#tableWrap');
+  var emptyState   = $('#emptyState');
+  var emptyMsg     = $('#emptyMsg');
+  var searchInput  = $('#searchInput');
+  var yearFilter   = $('#yearFilter');
+  var typeFilter   = $('#typeFilter');
+  var addRowBtn    = $('#addRowBtn');
+  var themeToggle  = $('#themeToggle');
+  var bulkBar      = $('#bulkBar');
+  var bulkCount    = $('#bulkCount');
+  var selectAllBtn = $('#selectAllBtn');
+  var bulkDeleteBtn= $('#bulkDeleteBtn');
+  var bulkClearBtn = $('#bulkClearBtn');
+  var exportCsvBtn = $('#exportCsvBtn');
+  var exportJsonBtn= $('#exportJsonBtn');
+  var importJsonBtn= $('#importJsonBtn');
+  var importFile   = $('#importFile');
+  var footerStats  = $('#footerStats');
+  var syncBtn      = $('#syncBtn');
+  var syncDot      = $('#syncDot');
+  var syncModal    = $('#syncModal');
+  var syncCloseBtn = $('#syncCloseBtn');
+  var syncEnableChk= $('#syncEnable');
+  var syncChecklistInput = $('#syncChecklistId');
+  var syncConfigText = $('#syncConfigJson');
+  var syncConnectBtn = $('#syncConnectBtn');
+  var syncDisconnectBtn = $('#syncDisconnectBtn');
+  var syncStatusEl = $('#syncStatus');
+
+  var records = loadRecords();
+  var selected = new Set();
+  var dragId = null;
+
+  var ICONS = {
+    moon:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>',
+    sun:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+    grip:'<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
+    trash:'<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>',
+    empty:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>'
+  };
+
+  /* ---------- Data ---------- */
+
+  function seedData(){
+    return [
+      { id:'seed-1', examination:'Math Exam',      year:'2026', type:'New Register', status:'Done',       sentDate:'2026-03-15', notes:'Completed on time',  checked:false },
+      { id:'seed-2', examination:'Science Exam',   year:'2025', type:'Recertified',  status:'In Progress', sentDate:'', notes:'Waiting for results', checked:false },
+      { id:'seed-3', examination:'Exam',           year:'2027', type:'Recertified',  status:'Not yet',     sentDate:'', notes:'exam not yet end',  checked:false }
+    ];
+  }
+
+  function uid(){
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+  }
+
+  function sanitize(r){
+    var sentDate = String(r.sentDate == null ? '' : r.sentDate);
+    return {
+      id: String(r.id || uid()),
+      examination: String(r.examination == null ? '' : r.examination),
+      year: YEARS.indexOf(String(r.year)) > -1 ? String(r.year) : '2026',
+      type: TYPES.indexOf(r.type) > -1 ? r.type : 'New Register',
+      status: STATUSES.indexOf(r.status) > -1 ? r.status : 'Not yet',
+      sentDate: /^\d{4}-\d{2}-\d{2}$/.test(sentDate) ? sentDate : '',
+      notes: String(r.notes == null ? '' : r.notes),
+      checked: !!(r.checked)
+    };
+  }
+
+  function loadRecords(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw){
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.map(sanitize);
+      }
+    } catch(e){}
+    return seedData();
+  }
+
+  function saveRecords(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch(e){}
+    if (sync.connected) scheduleCloudPush();
+  }
+
+  function saveCache(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch(e){}
+  }
+
+  function findById(id){
+    for (var i = 0; i < records.length; i++) if (records[i].id === id) return records[i];
+    return null;
+  }
+
+  /* ---------- Filtering ---------- */
+
+  function currentFilters(){
+    return { q: searchInput.value.trim().toLowerCase(), year: yearFilter.value, type: typeFilter.value };
+  }
+
+  function filteredRecords(){
+    var f = currentFilters();
+    return records.filter(function(r){
+      if (f.year !== 'All' && r.year !== f.year) return false;
+      if (f.type !== 'All' && r.type !== f.type) return false;
+      if (f.q){
+        var hay = ((r.examination || '') + '\n' + (r.notes || '')).toLowerCase();
+        if (hay.indexOf(f.q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function hasActiveTextFilter(){ return searchInput.value.trim().length > 0; }
+
+  /* ---------- Rendering helpers ---------- */
+
+  function el(tag, cls, text){
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function makeSelect(field, value, options, cls){
+    var sel = document.createElement('select');
+    sel.dataset.field = field;
+    if (cls) sel.className = cls;
+    options.forEach(function(o){
+      var opt = document.createElement('option');
+      opt.value = o; opt.textContent = o;
+      sel.appendChild(opt);
+    });
+    sel.value = value;
+    return sel;
+  }
+
+  /* ---------- Row rendering ---------- */
+
+  function createRow(rec){
+    var tr = document.createElement('tr');
+    tr.dataset.id = rec.id;
+    if (selected.has(rec.id)) tr.classList.add('selected');
+
+    // 1. Select: drag handle + bulk-select checkbox
+    var tdSelect = el('td', 'col-select');
+    var grip = el('span', 'grip');
+    grip.innerHTML = ICONS.grip;
+    grip.draggable = true;
+    grip.title = 'Drag to reorder rows';
+    var bulkCb = document.createElement('input');
+    bulkCb.type = 'checkbox';
+    bulkCb.className = 'bulk-check';
+    bulkCb.checked = selected.has(rec.id);
+    bulkCb.title = 'Select for bulk actions';
+    tdSelect.appendChild(grip);
+    tdSelect.appendChild(bulkCb);
+
+    // 2. Year
+    var tdYear = el('td', 'col-year');
+    tdYear.appendChild(makeSelect('year', rec.year, YEARS, 'cell-select'));
+
+    // 3. Examination
+    var tdExam = el('td', 'col-exam');
+    var name = document.createElement('input');
+    name.type = 'text';
+    name.className = 'cell-text exam-name';
+    name.dataset.field = 'examination';
+    name.value = rec.examination;
+    name.placeholder = 'Type exam name...';
+    name.autocomplete = 'off';
+    tdExam.appendChild(name);
+
+    // 4. Type
+    var tdType = el('td', 'col-type');
+    tdType.appendChild(makeSelect('type', rec.type, TYPES, 'cell-select'));
+
+    // 5. Checked
+    var tdChecked = el('td', 'col-checked');
+    var ccb = document.createElement('input');
+    ccb.type = 'checkbox';
+    ccb.className = 'row-check';
+    ccb.dataset.field = 'checked';
+    ccb.checked = rec.checked;
+    ccb.title = 'Click to check on / off';
+    tdChecked.appendChild(ccb);
+
+    // 6. Status (color-coded pill)
+    var tdStatus = el('td', 'col-status');
+    var status = makeSelect('status', rec.status, STATUSES, 'status-select');
+    status.dataset.status = rec.status;
+    tdStatus.appendChild(status);
+
+    // 7. Sent Date (date picker with calendar icon)
+    var tdDate = el('td', 'col-date');
+    var dateWrap = el('div', 'date-wrap');
+    dateWrap.dataset.placeholder = 'dd-----yyyy';
+    dateWrap.classList.toggle('has-value', !!rec.sentDate);
+    var dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.dataset.field = 'sentDate';
+    dateInput.value = rec.sentDate;
+    dateInput.title = 'Click the calendar icon to pick a date';
+    dateWrap.appendChild(dateInput);
+    tdDate.appendChild(dateWrap);
+
+    // 8. Note
+    var tdNote = el('td', 'col-note');
+    var note = document.createElement('input');
+    note.type = 'text';
+    note.className = 'cell-text note-input';
+    note.dataset.field = 'notes';
+    note.value = rec.notes;
+    note.placeholder = 'Short note...';
+    note.autocomplete = 'off';
+    tdNote.appendChild(note);
+
+    // 9. Delete
+    var tdDel = el('td', 'col-del');
+    var del = el('button', 'icon-btn del-btn');
+    del.title = 'Delete this row';
+    del.setAttribute('aria-label', 'Delete row');
+    del.innerHTML = ICONS.trash;
+    tdDel.appendChild(del);
+
+    tr.appendChild(tdSelect);
+    tr.appendChild(tdYear);
+    tr.appendChild(tdExam);
+    tr.appendChild(tdType);
+    tr.appendChild(tdChecked);
+    tr.appendChild(tdStatus);
+    tr.appendChild(tdDate);
+    tr.appendChild(tdNote);
+    tr.appendChild(tdDel);
+    return tr;
+  }
+
+  function render(){
+    var list = filteredRecords();
+    tbody.innerHTML = '';
+    list.forEach(function(rec){ tbody.appendChild(createRow(rec)); });
+
+    tableWrap.hidden = list.length === 0;
+
+    if (list.length === 0){
+      emptyState.hidden = false;
+      var f = currentFilters();
+      emptyMsg.textContent = (f.q || f.year !== 'All' || f.type !== 'All')
+        ? 'No records match your current search and filters.'
+        : 'No records yet. Click "Add Row" to create the first one.';
+    } else {
+      emptyState.hidden = true;
+    }
+
+    updateStats();
+    renderBulkBar();
+  }
+
+  function updateStats(){
+    var list = filteredRecords();
+    var counts = { 'Done':0, 'In Progress':0, 'Not yet':0 };
+    list.forEach(function(r){ if (counts[r.status] != null) counts[r.status]++; });
+
+    var f = currentFilters();
+    var filtered = (f.q || f.year !== 'All' || f.type !== 'All');
+
+    updateSummaryHeader(list.length, counts, filtered);
+    footerStats.textContent = records.length + ' record' + (records.length === 1 ? '' : 's') + ' saved locally';
+  }
+
+  function pill(html){
+    var s = document.createElement('span');
+    s.innerHTML = html;
+    return s;
+  }
+
+  function updateSummaryHeader(total, counts, filtered){
+    var summaryEl = $('#summaryBar');
+    if (!summaryEl){
+      summaryEl = document.createElement('div');
+      summaryEl.id = 'summaryBar';
+      summaryEl.className = 'summary-bar';
+      var h1 = document.querySelector('.app-header .header-left h1');
+      h1.parentNode.insertBefore(summaryEl, h1.nextSibling);
+    }
+    summaryEl.innerHTML = '';
+    summaryEl.appendChild(pill('<span class="sum total">' + total + ' shown</span>'));
+    if (filtered) summaryEl.appendChild(pill('<span class="sum last">of ' + records.length + ' total</span>'));
+    summaryEl.appendChild(pill('<span class="sum dot dot-done"></span>'));
+    summaryEl.appendChild(pill('<span class="sum lbl">Done ' + counts['Done'] + '</span>'));
+    summaryEl.appendChild(pill('<span class="sum dot dot-progress"></span>'));
+    summaryEl.appendChild(pill('<span class="sum lbl">In Progress ' + counts['In Progress'] + '</span>'));
+    summaryEl.appendChild(pill('<span class="sum dot dot-notyet"></span>'));
+    summaryEl.appendChild(pill('<span class="sum lbl">Not Yet ' + counts['Not yet'] + '</span>'));
+  }
+
+  /* ---------- Bulk actions ---------- */
+
+  function renderBulkBar(){
+    var list = filteredRecords();
+    var n = selected.size;
+    bulkBar.hidden = list.length === 0;
+    bulkCount.textContent = n + ' selected';
+
+    var allVisible = list.length > 0 && list.every(function(r){ return selected.has(r.id); });
+    selectAllBtn.textContent = allVisible ? 'Deselect All' : 'Select All';
+    selectAllBtn.title = allVisible
+      ? 'Unselect all rows'
+      : 'Select all rows matching the current filters';
+    selectAllBtn.classList.toggle('active', allVisible);
+  }
+
+  function selectAllVisible(){
+    var list = filteredRecords();
+    if (list.length === 0) return;
+    var allVisible = list.every(function(r){ return selected.has(r.id); });
+    if (allVisible && selected.size > 0){
+      selected.clear();
+    } else {
+      list.forEach(function(r){ selected.add(r.id); });
+    }
+    render();
+  }
+
+  function toggleBulk(id, on){
+    if (on) selected.add(id); else selected.delete(id);
+    var row = tbody.querySelector('tr[data-id="' + id + '"]');
+    if (row) row.classList.toggle('selected', on);
+    renderBulkBar();
+  }
+
+  function clearSelection(){ selected.clear(); render(); }
+
+  /* ---------- Event wiring ---------- */
+
+  function syncDateWrap(t, field){
+    if (field === 'sentDate'){
+      var w = t.closest('.date-wrap');
+      if (w) w.classList.toggle('has-value', !!t.value);
+    }
+  }
+
+  // Edits: save on every change without re-rendering (keeps focus).
+  tbody.addEventListener('input', function(e){
+    var t = e.target;
+    if (!t || !t.dataset || !t.dataset.field) return;
+    var row = t.closest('tr');
+    if (!row) return;
+    var rec = findById(row.dataset.id);
+    if (!rec) return;
+
+    if (t.dataset.field === 'checked'){
+      rec.checked = t.checked;
+    } else {
+      rec[t.dataset.field] = t.value;
+      syncDateWrap(t, t.dataset.field);
+    }
+    saveRecords();
+  });
+
+  tbody.addEventListener('change', function(e){
+    var t = e.target;
+    if (!t || !t.closest || !t.closest('tr')) return;
+
+    if (t.classList && t.classList.contains('bulk-check')){
+      toggleBulk(t.closest('tr').dataset.id, t.checked);
+      return;
+    }
+    var rec = findById(t.closest('tr').dataset.id);
+    if (!rec) return;
+    var field = t.dataset ? t.dataset.field : null;
+    if (!field) return;
+
+    if (field === 'checked'){
+      rec.checked = t.checked;
+    } else {
+      rec[field] = t.value;
+      if (field === 'status') t.dataset.status = t.value;
+      syncDateWrap(t, field);
+    }
+    saveRecords();
+    updateStats();
+  });
+
+  // When an edited text field loses focus, re-render so rows that no longer
+  // match the search filter disappear (without disrupting typing).
+  tbody.addEventListener('focusout', function(e){
+    var t = e.target;
+    if (!t || !t.dataset || !t.dataset.field) return;
+    if (hasActiveTextFilter()) render();
+    else updateStats();
+  });
+
+  // Delete button.
+  tbody.addEventListener('click', function(e){
+    var del = e.target.closest ? e.target.closest('.del-btn') : null;
+    if (del){
+      var row = del.closest('tr');
+      var id = row.dataset.id;
+      records = records.filter(function(r){ return r.id !== id; });
+      selected.delete(id);
+      saveRecords();
+      render();
+    }
+  });
+
+  // Drag & drop re-ordering.
+  tbody.addEventListener('dragstart', function(e){
+    var grip = e.target.closest ? e.target.closest('.grip') : null;
+    if (!grip) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'drag');
+    var row = grip.closest('tr');
+    dragId = row.dataset.id;
+    row.classList.add('dragging');
+  });
+
+  tbody.addEventListener('dragover', function(e){
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragId) return;
+    clearDropTargets();
+    var target = e.target.closest ? e.target.closest('tr') : null;
+    if (!target || !tbody.contains(target) || target.dataset.id === dragId) return;
+    var rect = target.getBoundingClientRect();
+    var before = (e.clientY - rect.top) < rect.height / 2;
+    target.classList.add(before ? 'drop-before' : 'drop-after');
+  });
+
+  tbody.addEventListener('dragleave', function(e){
+    var related = e.relatedTarget;
+    if (related && related.closest && related.closest('.drop-before, .drop-after')) return;
+    clearDropTargets();
+  });
+
+  tbody.addEventListener('drop', function(e){
+    e.preventDefault();
+    var target = e.target.closest ? e.target.closest('tr') : null;
+    if (!target || !tbody.contains(target) || !dragId || target.dataset.id === dragId) return;
+    var from = records.findIndex(function(r){ return r.id === dragId; });
+    if (from === -1) return;
+
+    var moved = records.splice(from, 1)[0];
+    var toIndex = records.findIndex(function(r){ return r.id === target.dataset.id; });
+    if (toIndex === -1){ records.splice(from, 0, moved); }
+    else {
+      var rect = target.getBoundingClientRect();
+      var before = (e.clientY - rect.top) < rect.height / 2;
+      records.splice(before ? toIndex : toIndex + 1, 0, moved);
+    }
+    clearDropTargets();
+    dragId = null;
+    saveRecords();
+    render();
+  });
+
+  tbody.addEventListener('dragend', function(){
+    dragId = null;
+    clearDropTargets();
+    var dragging = tbody.querySelectorAll('tr.dragging');
+    for (var i = 0; i < dragging.length; i++) dragging[i].classList.remove('dragging');
+  });
+
+  function clearDropTargets(){
+    var sels = tbody.querySelectorAll('.drop-before, .drop-after');
+    for (var i = 0; i < sels.length; i++){
+      sels[i].classList.remove('drop-before');
+      sels[i].classList.remove('drop-after');
+    }
+  }
+
+  /* ---------- Filters ---------- */
+
+  searchInput.addEventListener('input', render);
+  yearFilter.addEventListener('change', render);
+  typeFilter.addEventListener('change', render);
+
+  /* ---------- Add row ---------- */
+
+  function newRecord(){
+    var f = currentFilters();
+    return {
+      id: uid(),
+      examination: '',
+      year: f.year !== 'All' ? f.year : '2026',
+      type: f.type !== 'All' ? f.type : 'New Register',
+      status: 'Not yet',
+      sentDate: '',
+      notes: '',
+      checked: false
+    };
+  }
+
+  addRowBtn.addEventListener('click', function(){
+    records.unshift(newRecord());
+    saveRecords();
+    render();
+    var row = tbody.querySelector('tr');
+    if (row){
+      if (typeof row.scrollIntoView === 'function'){
+        row.scrollIntoView({ behavior:'smooth', block:'center' });
+      }
+      var name = row.querySelector('.exam-name');
+      if (name) name.focus();
+    }
+  });
+
+  /* ---------- Bulk bar ---------- */
+
+  selectAllBtn.addEventListener('click', selectAllVisible);
+
+  bulkDeleteBtn.addEventListener('click', function(){
+    if (selected.size === 0) return;
+    var n = selected.size;
+    if (!window.confirm('Delete ' + n + ' selected record' + (n === 1 ? '' : 's') + '?')) return;
+    records = records.filter(function(r){ return !selected.has(r.id); });
+    selected.clear();
+    saveRecords();
+    render();
+  });
+
+  bulkClearBtn.addEventListener('click', clearSelection);
+
+  /* ---------- Export / Import ---------- */
+
+  function download(filename, content, mime){
+    var blob = new Blob([content], { type: mime });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 800);
+  }
+
+  function csvEscape(v){
+    v = (v == null ? '' : v).toString();
+    return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+
+  exportCsvBtn.addEventListener('click', function(){
+    var headers = ['Examination', 'Year', 'Type', 'Status', 'Sent Date', 'Notes', 'Checked'];
+    var lines = [headers.map(csvEscape).join(',')];
+    records.forEach(function(r){
+      lines.push([
+        r.examination, r.year, r.type, r.status, r.sentDate, r.notes, r.checked ? 'Yes' : 'No'
+      ].map(csvEscape).join(','));
+    });
+    download('RL_Result_Checklist.csv', '\ufeff' + lines.join('\r\n'), 'text/csv;charset=utf-8');
+  });
+
+  exportJsonBtn.addEventListener('click', function(){
+    download('RL_Result_Checklist.json', JSON.stringify(records, null, 2), 'application/json');
+  });
+
+  importJsonBtn.addEventListener('click', function(){ importFile.click(); });
+
+  importFile.addEventListener('change', function(){
+    var file = importFile.files[0];
+    if (!file) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      try {
+        var data = JSON.parse(rd.result);
+        if (!Array.isArray(data)) throw new Error('Not an array');
+        records = data.map(sanitize);
+        selected.clear();
+        saveRecords();
+        render();
+        window.alert('Imported ' + records.length + ' record' + (records.length === 1 ? '' : 's') + '.');
+      } catch(err){
+        window.alert('Import failed - please choose a valid JSON backup file.');
+      }
+      importFile.value = '';
+    };
+    rd.readAsText(file);
+  });
+
+  /* ---------- Theme ---------- */
+
+  function currentTheme(){
+    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch(e){}
+    themeToggle.innerHTML = theme === 'dark' ? ICONS.sun : ICONS.moon;
+  }
+
+  themeToggle.addEventListener('click', function(){
+    applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+  });
+
+  var savedTheme = null;
+  try { savedTheme = localStorage.getItem(THEME_KEY); } catch(e){}
+  applyTheme(savedTheme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+  /* ---------- Live sync (Firestore) ---------- */
+
+  var SYNC_CONFIG_KEY = 'rl_sync_config';
+  var SYNC_COLLECTION = 'checklists';
+  var sync = {
+    config: null,
+    app: null,
+    db: null,
+    docRef: null,
+    unsub: null,
+    connected: false,
+    status: 'off',
+    lastPushed: null,
+    pushTimer: null
+  };
+
+  function loadSyncConfig(){
+    try {
+      var raw = localStorage.getItem(SYNC_CONFIG_KEY);
+      if (raw){
+        var c = JSON.parse(raw);
+        if (c && typeof c === 'object') return c;
+      }
+    } catch(e){}
+    return null;
+  }
+
+  function saveSyncConfig(c){
+    try { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(c)); } catch(e){}
+  }
+
+  function recordsJson(){
+    return JSON.stringify(records.map(function(r){
+      return { id:r.id, examination:r.examination, year:r.year, type:r.type, status:r.status, sentDate:r.sentDate, notes:r.notes, checked:r.checked };
+    }));
+  }
+
+  function loadScript(url){
+    return new Promise(function(ok){
+      var s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = ok;
+      s.onerror = ok;
+      document.head.appendChild(s);
+    });
+  }
+
+  function ensureFirebaseSdk(){
+    if (window.firebase && window.firebase.firestore) return Promise.resolve();
+    var APP = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
+    var FS  = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js';
+    return loadScript(APP).then(function(){ return loadScript(FS); });
+  }
+
+  function writeCloudRecords(){
+    if (!sync.docRef) return;
+    var payload = JSON.parse(recordsJson());
+    sync.lastPushed = recordsJson();
+    window.firebase.firestore.setDoc(
+      sync.docRef,
+      { records: payload, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    ).catch(function(){ sync.status = 'error'; sync.connected = false; updateSyncUI(); });
+  }
+
+  function scheduleCloudPush(){
+    if (!sync.connected) return;
+    clearTimeout(sync.pushTimer);
+    sync.pushTimer = setTimeout(writeCloudRecords, 450);
+  }
+
+  function onCloudSnapshot(snap){
+    var data = snap.data();
+    var incoming = data && data.records;
+    if (!Array.isArray(incoming)){
+      writeCloudRecords();
+      return;
+    }
+    if (sync.lastPushed && JSON.stringify(incoming) === sync.lastPushed){
+      sync.lastPushed = null;
+      return;
+    }
+    records = incoming.map(sanitize);
+    selected.clear();
+    saveCache();
+    render();
+  }
+
+  function onCloudError(){
+    sync.status = 'error';
+    sync.connected = false;
+    updateSyncUI();
+  }
+
+  function doConnect(){
+    sync.status = 'connecting';
+    updateSyncUI();
+    ensureFirebaseSdk().then(function(){
+      if (!window.firebase || !window.firebase.firestore){
+        throw new Error('Firebase SDK unavailable');
+      }
+      if (!window.firebase.apps.length){
+        sync.app = window.firebase.initializeApp(sync.config.firebase);
+      } else {
+        sync.app = window.firebase.apps[0];
+      }
+      sync.db = window.firebase.firestore(sync.app);
+      var docId = String(sync.config.checklistId || 'rl-checklist').trim() || 'rl-checklist';
+      sync.docRef = window.firebase.firestore.doc(sync.db, SYNC_COLLECTION, docId);
+      return window.firebase.firestore.getDoc(sync.docRef);
+    }).then(function(snap){
+      var data = snap.exists() ? snap.data() : null;
+      if (data && Array.isArray(data.records) && data.records.length > 0){
+        records = data.records.map(sanitize);
+        selected.clear();
+        saveCache();
+        render();
+      } else {
+        writeCloudRecords();
+      }
+      if (sync.unsub) sync.unsub();
+      sync.unsub = window.firebase.firestore.onSnapshot(sync.docRef, onCloudSnapshot, onCloudError);
+      sync.connected = true;
+      sync.status = 'connected';
+      updateSyncUI();
+    }).catch(function(){
+      sync.status = 'error';
+      sync.connected = false;
+      updateSyncUI();
+    });
+  }
+
+  function doDisconnect(){
+    if (sync.unsub){ try { sync.unsub(); } catch(e){} }
+    sync.unsub = null;
+    sync.connected = false;
+    sync.status = 'off';
+    sync.lastPushed = null;
+    clearTimeout(sync.pushTimer);
+    saveCache();
+    updateSyncUI();
+  }
+
+  function updateSyncUI(){
+    if (!syncStatusEl) return;
+    var text = {
+      off: 'Not connected. Click "Save & Connect" to start sharing.',
+      connecting: 'Connecting to the shared checklist...',
+      connected: 'Connected. Changes are shared live with your teammate.',
+      error: 'Could not connect. Check your Firebase config and internet connection.'
+    }[sync.status] || '';
+    syncStatusEl.textContent = text;
+    syncStatusEl.className = 'modal-status' + (sync.status === 'connected' ? ' ok' : (sync.status === 'error' ? ' err' : ''));
+    if (syncDot) syncDot.className = 'sync-dot ' + sync.status;
+    if (syncConnectBtn){
+      syncConnectBtn.disabled = sync.status === 'connecting';
+      syncConnectBtn.textContent = sync.status === 'connecting' ? 'Connecting...' : 'Save & Connect';
+    }
+  }
+
+  syncBtn.addEventListener('click', function(){
+    if (sync.config){
+      syncChecklistInput.value = sync.config.checklistId || 'rl-checklist';
+      syncConfigText.value = sync.config.firebase ? JSON.stringify(sync.config.firebase, null, 2) : '';
+      syncEnableChk.checked = !!sync.config.enabled;
+    } else {
+      syncChecklistInput.value = 'rl-checklist';
+      syncConfigText.value = '';
+      syncEnableChk.checked = false;
+    }
+    syncModal.hidden = false;
+    updateSyncUI();
+  });
+
+  syncCloseBtn.addEventListener('click', function(){ syncModal.hidden = true; });
+
+  syncModal.addEventListener('click', function(e){
+    if (e.target === syncModal) syncModal.hidden = true;
+  });
+
+  syncConnectBtn.addEventListener('click', function(){
+    var firebaseCfg = null;
+    try {
+      firebaseCfg = JSON.parse(syncConfigText.value || '{}');
+    } catch(e){
+      window.alert('Please paste a valid JSON Firebase config in the box.');
+      return;
+    }
+    if (!firebaseCfg || !firebaseCfg.projectId){
+      window.alert('The Firebase config looks incomplete. Paste the web app config from the Firebase console (it includes apiKey, authDomain, projectId, appId).');
+      return;
+    }
+    sync.config = {
+      checklistId: String(syncChecklistInput.value || 'rl-checklist').trim(),
+      firebase: firebaseCfg,
+      enabled: syncEnableChk.checked
+    };
+    saveSyncConfig(sync.config);
+    if (syncEnableChk.checked){
+      doConnect();
+    } else {
+      doDisconnect();
+    }
+  });
+
+  syncDisconnectBtn.addEventListener('click', function(){
+    doDisconnect();
+    if (sync.config){
+      sync.config.enabled = false;
+      saveSyncConfig(sync.config);
+    }
+    syncEnableChk.checked = false;
+  });
+
+  function initSync(){
+    sync.config = loadSyncConfig();
+    if (sync.config && sync.config.enabled){
+      doConnect();
+    } else {
+      sync.status = 'off';
+      updateSyncUI();
+    }
+  }
+
+  /* ---------- Init ---------- */
+
+  // Persist initial state (seed or loaded data) so it survives a refresh.
+  saveRecords();
+  render();
+
+  initSync();
+})();
+</script>
+</body>
+</html>
